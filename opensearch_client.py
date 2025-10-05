@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 host = os.getenv('OPENSEARCH_HOST')
-port = int(os.getenv('OPENSEARCH_PORT'))
+port = int(os.getenv('OPENSEARCH_PORT',443))
 auth = (os.getenv('OPENSEARCH_USERNAME'), os.getenv('OPENSEARCH_PASSWORD'))
 
 print(f"OPENSEARCH_HOST: {host}")
