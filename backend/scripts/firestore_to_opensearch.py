@@ -5,16 +5,24 @@ import unicodedata
 import re
 import os
 import requests
+import json
 from diccionario_sinonimos import obtener_sinonimos
 
 # ---------------------
 # Configuración Firebase
 # ---------------------
 
-FIREBASE_CREDENTIALS_PATH = r"C:\Users\HP\Pictures\serviceAccountKey.json"
+firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
+
+if firebase_cred_json:
+    cred_dict = json.loads(firebase_cred_json)
+    cred = credentials.Certificate(cred_dict)
+else:
+    # Ruta local para desarrollo
+    FIREBASE_CREDENTIALS_PATH = r"C:\Users\HP\Pictures\serviceAccountKey.json"
+    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
 
 if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
