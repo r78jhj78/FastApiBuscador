@@ -12,8 +12,8 @@ app = FastAPI(title="Buscador de Recetas")
 
 host = os.getenv('OPENSEARCH_HOST', 'localhost')
 port = int(os.getenv('OPENSEARCH_PORT', 443))
-user = os.getenv('OPENSEARCH_USERNAME', 'admin')
-password = os.getenv('OPENSEARCH_PASSWORD', 'admin')
+user = os.getenv('OPENSEARCH_USER', 'admin')
+password = os.getenv('OPENSEARCH_PASS', 'admin')
 
 
 @app.get("/")
