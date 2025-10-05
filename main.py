@@ -44,3 +44,13 @@ def ping_opensearch():
             return {"status": "OpenSearch no responde"}
     except Exception as e:
         return {"error": str(e)}
+
+@app.post("/admin/reindexar")
+def reindexar():
+    try:
+        from scripts.firestore_to_opensearch import exportar_e_indexar_recetas, crear_indice_con_sinonimos
+        crear_indice_con_sinonimos()
+        exportar_e_indexar_recetas()
+        return {"status": "Recetas reindexadas correctamente"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
