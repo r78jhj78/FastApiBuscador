@@ -15,19 +15,18 @@ from firebase_admin import credentials, initialize_app
 # ---------------------
 
 firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
-if firebase_cred_json:
-    cred_dict = json.loads(firebase_cred_json)
-    # Corregir la clave privada para que tenga saltos de línea reales
-    if 'private_key' in cred_dict:
-        cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
-    cred = credentials.Certificate(cred_dict)
-    initialize_app(cred)
-else:
+if not firebase_cred_json:
     raise Exception("No se encontró variable de entorno FIREBASE_CREDENTIALS")
+
+cred_dict = json.loads(firebase_cred_json)
+cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
+cred = credentials.Certificate(cred_dict)
+
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
+
 
 # ---------------------
 # Configuración OpenSearch
@@ -197,16 +196,11 @@ def crear_indice():
     client.indices.create(index=index_name, body=index_body)
     print(f"✅ Índice '{index_name}' creado en OpenSearch.")
 
-    client.indices.create(index=index_name, body=index_body)
-    print(f"✅ Índice '{index_name}' creado con sinónimos dinámicos.")
-
-
 # ---------------------
 # Función principal para exportar e indexar
 # ---------------------
 
 def exportar_e_indexar_recetas():
-    crear_indice()
 
     recetas_ref = db.collection("recetas")
     docs = recetas_ref.stream()

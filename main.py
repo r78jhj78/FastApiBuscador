@@ -7,6 +7,7 @@ from opensearch_client import client
 import os
 from scripts.firestore_to_opensearch import crear_indice_con_sinonimos, exportar_e_indexar_recetas  # <--- IMPORTA LAS FUNCIONES
 import time
+from opensearchpy import exceptions
 
 app = FastAPI(title="Buscador de Recetas")
 
@@ -60,23 +61,30 @@ def ping_opensearch():
 def reindexar():
     index_name = "recetas"
     try:
-        # Eliminar índice si existe
+        # Intentar eliminar si existe
         if client.indices.exists(index=index_name):
-            client.indices.delete(index=index_name)
-            # Esperar a que el índice sea realmente eliminado
-            for _ in range(10):  # intenta 10 veces
-                if not client.indices.exists(index=index_name):
-                    break
-                time.sleep(0.5)  # espera medio segundo
+            try:
+                client.indices.delete(index=index_name)
+                print(f"Índice '{index_name}' eliminado correctamente.")
+                time.sleep(1)
+            except Exception as e:
+                print(f"No se pudo eliminar el índice: {e}")
+
+        # Crear índice (pero solo si no existe)
+        try:
+            if not client.indices.exists(index=index_name):
+                crear_indice_con_sinonimos()
+                print(f"Índice '{index_name}' creado correctamente.")
             else:
-                raise Exception("No se pudo eliminar el índice a tiempo")
+                print(f"Índice '{index_name}' ya existe, se usará tal cual.")
+        except exceptions.RequestError as e:
+            if "resource_already_exists_exception" in str(e):
+                print("El índice ya existía, continuando...")
+            else:
+                raise
 
-        # Crear índice con sinónimos y configuración
-        crear_indice_con_sinonimos()
-
-        # Indexar documentos
-        exportar_e_indexar_recetas()
-
-        return {"message": "Reindexado correctamente"}
+        # Reindexar las recetas desde Firebase
+        total = exportar_e_indexar_recetas()
+        return {"message": f"Reindexado correctamente ({total} recetas)."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
