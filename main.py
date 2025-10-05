@@ -6,7 +6,7 @@ from buscar_recetas import buscar_recetas, limpiar_stopwords
 from opensearch_client import client  
 import os
 from scripts.firestore_to_opensearch import crear_indice_con_sinonimos, exportar_e_indexar_recetas  # <--- IMPORTA LAS FUNCIONES
-
+import time
 
 app = FastAPI(title="Buscador de Recetas")
 
@@ -63,11 +63,18 @@ def reindexar():
         # Eliminar índice si existe
         if client.indices.exists(index=index_name):
             client.indices.delete(index=index_name)
-        
-        # Crear índice con sinónimos y settings dentro de la función importada
+            # Esperar a que el índice sea realmente eliminado
+            for _ in range(10):  # intenta 10 veces
+                if not client.indices.exists(index=index_name):
+                    break
+                time.sleep(0.5)  # espera medio segundo
+            else:
+                raise Exception("No se pudo eliminar el índice a tiempo")
+
+        # Crear índice con sinónimos y configuración
         crear_indice_con_sinonimos()
 
-        # Indexar los documentos
+        # Indexar documentos
         exportar_e_indexar_recetas()
 
         return {"message": "Reindexado correctamente"}
