@@ -1,4 +1,4 @@
-from opensearchpy import OpenSearch
+from opensearch_client import client
 import string
 
 # Configuración (igual que en tu otro código)
@@ -7,12 +7,6 @@ OPENSEARCH_PORT = 9200
 OPENSEARCH_USER = "admin"
 OPENSEARCH_PASS = "admin"
 
-client = OpenSearch(
-    hosts=[{"host": OPENSEARCH_HOST, "port": OPENSEARCH_PORT}],
-    http_auth=(OPENSEARCH_USER, OPENSEARCH_PASS),
-    use_ssl=False,
-    verify_certs=False,
-)
 
 SINONIMOS_INGREDIENTES = {
     "pollo": ["gallina", "ave"],

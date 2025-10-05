@@ -7,6 +7,7 @@ import os
 import requests
 import json
 from diccionario_sinonimos import obtener_sinonimos
+from opensearch_client import client
 
 # ---------------------
 # Configuración Firebase
@@ -32,20 +33,11 @@ db = firestore.client()
 # ---------------------
 
 # Cambia estos valores a la configuración de tu instancia OpenSearch
-host = os.getenv('OPENSEARCH_HOST')
+host = os.getenv('OPENSEARCH_HOST', 'localhost')
 port = int(os.getenv('OPENSEARCH_PORT', 443))
-user = os.getenv('OPENSEARCH_USER')
-password = os.getenv('OPENSEARCH_PASS')
+user = os.getenv('OPENSEARCH_USER', 'admin')  # Cambio aquí para que coincida con tu env
+password = os.getenv('OPENSEARCH_PASS', 'admin')  # Cambio aquí
 
-client = OpenSearch(
-    hosts=[{"host": host, "port": port}],
-    http_auth=(user, password),
-    use_ssl=True,
-    verify_certs=True,
-    ssl_assert_hostname=True,
-    ssl_show_warn=False,
-    http_compress=True,
-)
 
 # ---------------------
 # Funciones auxiliares

@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import List
 from buscar_recetas import buscar_recetas, limpiar_stopwords
-from fastapi import FastAPI
-from opensearchpy import OpenSearch
+from opensearch_client import client  
 import os
 
 app = FastAPI(title="Buscador de Recetas")
@@ -14,12 +13,6 @@ port = int(os.getenv('OPENSEARCH_PORT', 443))
 user = os.getenv('OPENSEARCH_USERNAME', 'admin')
 password = os.getenv('OPENSEARCH_PASSWORD', 'admin')
 
-client = OpenSearch(
-    hosts=[{"host": host, "port": port}],
-    http_auth=(user, password),
-    use_ssl=True,
-    verify_certs=True,
-)
 
 @app.get("/")
 def read_root():
