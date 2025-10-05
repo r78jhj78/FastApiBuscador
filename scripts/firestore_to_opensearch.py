@@ -154,10 +154,6 @@ def crear_indice_con_sinonimos():
     print(f"✅ Índice '{index_name}' creado con sinónimos dinámicos.")
 
 
-if __name__ == "__main__":
-    crear_indice_con_sinonimos()
-
-
 
 def crear_indice():
     """
@@ -211,8 +207,7 @@ def crear_indice():
     client.indices.create(index=index_name, body=index_body)
     print(f"✅ Índice '{index_name}' creado con sinónimos dinámicos.")
 
-    if __name__ == "__main__":
-        crear_indice_con_sinonimos()
+
 # ---------------------
 # Función principal para exportar e indexar
 # ---------------------
@@ -249,4 +244,5 @@ def exportar_e_indexar_recetas():
 
 
 if __name__ == "__main__":
-     exportar_e_indexar_recetas()
+    crear_indice_con_sinonimos()
+    exportar_e_indexar_recetas()
