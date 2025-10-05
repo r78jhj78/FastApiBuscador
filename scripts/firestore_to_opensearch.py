@@ -8,21 +8,22 @@ import requests
 import json
 from diccionario_sinonimos import obtener_sinonimos
 from opensearch_client import client
+from firebase_admin import credentials, initialize_app
 
 # ---------------------
 # Configuración Firebase
 # ---------------------
 
 firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
-
 if firebase_cred_json:
     cred_dict = json.loads(firebase_cred_json)
+    # Corregir la clave privada para que tenga saltos de línea reales
+    if 'private_key' in cred_dict:
+        cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
     cred = credentials.Certificate(cred_dict)
+    initialize_app(cred)
 else:
-    # Ruta local para desarrollo
-    FIREBASE_CREDENTIALS_PATH = r"C:\Users\HP\Pictures\serviceAccountKey.json"
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
-
+    raise Exception("No se encontró variable de entorno FIREBASE_CREDENTIALS")
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
