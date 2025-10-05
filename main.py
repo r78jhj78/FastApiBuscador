@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import List
 from buscar_recetas import buscar_recetas, limpiar_stopwords
 from opensearch_client import client  
 import os
+from scripts.firestore_to_opensearch import crear_indice_con_sinonimos, exportar_e_indexar_recetas  # <--- IMPORTA LAS FUNCIONES
+
 
 app = FastAPI(title="Buscador de Recetas")
 
@@ -45,12 +47,29 @@ def ping_opensearch():
     except Exception as e:
         return {"error": str(e)}
 
+# @app.post("/admin/reindexar")
+# def reindexar():
+#     try:
+#         from scripts.firestore_to_opensearch import exportar_e_indexar_recetas, crear_indice_con_sinonimos
+#         crear_indice_con_sinonimos()
+#         exportar_e_indexar_recetas()
+#         return {"status": "Recetas reindexadas correctamente"}
+#     except Exception as e:
+#         return JSONResponse(status_code=500, content={"error": str(e)})
 @app.post("/admin/reindexar")
 def reindexar():
+    index_name = "recetas"
     try:
-        from scripts.firestore_to_opensearch import exportar_e_indexar_recetas, crear_indice_con_sinonimos
+        # Eliminar índice si existe
+        if client.indices.exists(index=index_name):
+            client.indices.delete(index=index_name)
+        
+        # Crear índice con sinónimos y settings dentro de la función importada
         crear_indice_con_sinonimos()
+
+        # Indexar los documentos
         exportar_e_indexar_recetas()
-        return {"status": "Recetas reindexadas correctamente"}
+
+        return {"message": "Reindexado correctamente"}
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        raise HTTPException(status_code=500, detail=str(e))
