@@ -7,8 +7,8 @@ load_dotenv()  # Carga desde .env
 
 host = os.getenv('OPENSEARCH_HOST')
 port = int(os.getenv('OPENSEARCH_PORT', 443))
-user = os.getenv('OPENSEARCH_USERNAME')
-password = os.getenv('OPENSEARCH_PASSWORD')
+user = os.getenv('OPENSEARCH_USER')  # antes: OPENSEARCH_USERNAME
+password = os.getenv('OPENSEARCH_PASS')  # antes: OPENSEARCH_PASSWORD
 
 client = OpenSearch(
     hosts=[{"host": host, "port": port}],
