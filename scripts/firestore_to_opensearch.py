@@ -32,16 +32,16 @@ db = firestore.client()
 # ---------------------
 
 # Cambia estos valores a la configuración de tu instancia OpenSearch
-OPENSEARCH_HOST = "localhost"
-OPENSEARCH_PORT = 9200
-OPENSEARCH_USER = "admin"
-OPENSEARCH_PASS = "admin"
+host = os.getenv('OPENSEARCH_HOST', 'localhost')
+port = int(os.getenv('OPENSEARCH_PORT', 9200))
+user = os.getenv('OPENSEARCH_USERNAME', 'admin')
+password = os.getenv('OPENSEARCH_PASSWORD', 'admin')
 
 client = OpenSearch(
-    hosts=[{"host": OPENSEARCH_HOST, "port": OPENSEARCH_PORT}],
-    http_auth=(OPENSEARCH_USER, OPENSEARCH_PASS),
-    use_ssl=False,
-    verify_certs=False,
+    hosts=[{"host": host, "port": port}],
+    http_auth=(user, password),
+    use_ssl=True,            # SSL activado
+    verify_certs=True,
 )
 
 # ---------------------
