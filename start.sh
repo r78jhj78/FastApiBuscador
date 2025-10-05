@@ -1,4 +1,4 @@
-set -e  
-cd backend/app
+#!/bin/bash
+set -e
 pip install -r requirements.txt
 python main.py

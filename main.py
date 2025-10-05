@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-from .buscar_recetas import buscar_recetas, limpiar_stopwords
+from buscar_recetas import buscar_recetas, limpiar_stopwords
 
 app = FastAPI(title="Buscador de Recetas")
 
