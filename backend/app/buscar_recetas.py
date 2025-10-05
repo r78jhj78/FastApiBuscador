@@ -143,7 +143,6 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
     if return_hits:
         return recetas
 
-    # Si es llamado desde script
     if not hits:
         print("No se encontraron recetas para la búsqueda:", query_expandida)
         return
