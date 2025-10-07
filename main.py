@@ -2,14 +2,17 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import List
-from buscar_recetas import buscar_recetas, limpiar_stopwords,buscar_recetas_avanzada
+from buscar_recetas import buscar_recetas, limpiar_stopwords
 from opensearch_client import client  
 import os
 from scripts.firestore_to_opensearch import crear_indice_con_sinonimos, exportar_e_indexar_recetas  # <--- IMPORTA LAS FUNCIONES
 import time
 from opensearchpy import exceptions
+from routes.recetas import router as recetas_router
+
 
 app = FastAPI(title="Buscador de Recetas")
+app.include_router(recetas_router)
 
 host = os.getenv('OPENSEARCH_HOST', 'localhost')
 port = int(os.getenv('OPENSEARCH_PORT', 443))
@@ -34,7 +37,12 @@ def buscar(query: str = Query(..., description="Palabras clave para buscar recet
     try:
         texto_filtrado = limpiar_stopwords(query)
         resultados = buscar_recetas(texto_filtrado, return_hits=True)  # usamos versión modificada
-        return {"resultados": resultados}
+        return {
+            "query_original": query,
+            "query_filtrada": texto_filtrado,
+            "total_resultados": len(resultados),
+            "resultados": resultados
+            }
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -47,20 +55,6 @@ def ping_opensearch():
             return {"status": "OpenSearch no responde"}
     except Exception as e:
         return {"error": str(e)}
-
-@app.get("/buscar_avanzado")
-def buscar_avanzado(
-    query: str = "",
-    max_calorias: int = None,
-    max_tiempo: int = None,
-    max_porciones: int = None
-):
-    try:
-        texto_filtrado = limpiar_stopwords(query)
-        resultados = buscar_recetas_avanzada(texto_filtrado, max_calorias, max_tiempo, max_porciones)
-        return {"resultados": resultados}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # @app.post("/admin/reindexar")
 # def reindexar():

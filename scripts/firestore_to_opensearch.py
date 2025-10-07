@@ -138,12 +138,8 @@ def crear_indice_con_sinonimos():
                 "calorias": {
                     "type": "integer"
                 },
-                "porciones": {
-                    "type": "integer"
-                },
-                "tiempoPreparacion": {
-                    "type": "integer"
-                } 
+                "likes": { "type": "integer" },
+                "popup_clicks": { "type": "integer" }
             }
         }
     }
@@ -195,12 +191,8 @@ def crear_indice():
                 "calorias": {
                     "type": "integer"
                 },
-                "porciones": {
-                    "type": "integer"
-                },
-                "tiempoPreparacion": {
-                    "type": "integer"
-                } 
+                "likes": { "type": "integer" },
+                "popup_clicks": { "type": "integer" }
             }
         }
     }
@@ -208,20 +200,6 @@ def crear_indice():
     client.indices.create(index=index_name, body=index_body)
     print(f"✅ Índice '{index_name}' creado en OpenSearch.")
 
-def parse_tiempo_preparacion(tiempo_str):
-    """Convierte '50 minutos' o '1 hora 20 minutos' a minutos (int)."""
-    import re
-    minutos = 0
-    horas = 0
-    if not tiempo_str:
-        return 0
-    m_h = re.search(r"(\d+)\s*h", tiempo_str)
-    m_m = re.search(r"(\d+)\s*m", tiempo_str)
-    if m_h:
-        horas = int(m_h.group(1))
-    if m_m:
-        minutos = int(m_m.group(1))
-    return horas * 60 + minutos
 # ---------------------
 # Función principal para exportar e indexar
 # ---------------------
@@ -247,8 +225,8 @@ def exportar_e_indexar_recetas():
             "pasos": " ".join(pasos),
             "contenido_total": f"{titulo} {desc} {' '.join(ingredientes)} {' '.join(pasos)}",
             "calorias": data.get("calorias", 0),
-            "porciones": data.get("porciones", 0),
-            "tiempoPreparacion": parse_tiempo_preparacion(data.get("tiempoPreparacion", "")),
+            "likes": data.get("likes", 0),
+            "popup_clicks": data.get("popup_clicks", 0),
         }
 
         # Indexar documento en OpenSearch

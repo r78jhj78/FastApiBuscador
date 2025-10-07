@@ -71,7 +71,11 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
                 "query_weight": 0.7,
                 "rescore_query_weight": 1.8
             }
-        }
+        },#prioriar los likes
+        "sort":[
+            {"likes": {"order":"desc"}},
+            {"popup_clicks":{"order":"desc"}}
+        ]
     }
 
     response = client.search(index=index, body=body, size=size)
@@ -85,6 +89,8 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
             "ingredientes": source.get("ingredientes_texto", ""),
             "descripcion": source.get("descripcion", ""),
             "pasos": source.get("pasos", ""),
+            "likes": source.get("likes", 0),
+            "popup_clicks": source.get("popup_clicks", 0)
         })
 
     if return_hits:
@@ -102,29 +108,6 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
         print("-" * 40)
         
 
-def buscar_recetas_avanzada(query, max_calorias=None, max_tiempo=None, max_porciones=None, size=5):
-    query_expandida = expandir_con_sinonimos(query)
-
-    filtros = []
-    if max_calorias is not None:
-        filtros.append({"range": {"calorias": {"lte": max_calorias}}})
-    if max_tiempo is not None:
-        filtros.append({"range": {"tiempoPreparacion": {"lte": max_tiempo}}})
-    if max_porciones is not None:
-        filtros.append({"range": {"porciones": {"lte": max_porciones}}})
-
-    body = {
-        "query": {
-            "bool": {
-                "must": query_expandida["bool"]["must"],
-                "filter": filtros
-            }
-        }
-    }
-
-    response = client.search(index="recetas", body=body, size=size)
-    hits = response.get("hits", {}).get("hits", [])
-    return [h["_source"] for h in hits]
 
 
 def limpiar_stopwords(texto):
