@@ -102,6 +102,29 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
         print("-" * 40)
         
 
+def buscar_recetas_avanzada(query, max_calorias=None, max_tiempo=None, max_porciones=None, size=5):
+    query_expandida = expandir_con_sinonimos(query)
+
+    filtros = []
+    if max_calorias is not None:
+        filtros.append({"range": {"calorias": {"lte": max_calorias}}})
+    if max_tiempo is not None:
+        filtros.append({"range": {"tiempoPreparacion": {"lte": max_tiempo}}})
+    if max_porciones is not None:
+        filtros.append({"range": {"porciones": {"lte": max_porciones}}})
+
+    body = {
+        "query": {
+            "bool": {
+                "must": query_expandida["bool"]["must"],
+                "filter": filtros
+            }
+        }
+    }
+
+    response = client.search(index="recetas", body=body, size=size)
+    hits = response.get("hits", {}).get("hits", [])
+    return [h["_source"] for h in hits]
 
 
 def limpiar_stopwords(texto):

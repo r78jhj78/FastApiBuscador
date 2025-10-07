@@ -2,7 +2,7 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from typing import List
-from buscar_recetas import buscar_recetas, limpiar_stopwords
+from buscar_recetas import buscar_recetas, limpiar_stopwords,buscar_recetas_avanzada
 from opensearch_client import client  
 import os
 from scripts.firestore_to_opensearch import crear_indice_con_sinonimos, exportar_e_indexar_recetas  # <--- IMPORTA LAS FUNCIONES
@@ -47,6 +47,20 @@ def ping_opensearch():
             return {"status": "OpenSearch no responde"}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/buscar_avanzado")
+def buscar_avanzado(
+    query: str = "",
+    max_calorias: int = None,
+    max_tiempo: int = None,
+    max_porciones: int = None
+):
+    try:
+        texto_filtrado = limpiar_stopwords(query)
+        resultados = buscar_recetas_avanzada(texto_filtrado, max_calorias, max_tiempo, max_porciones)
+        return {"resultados": resultados}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # @app.post("/admin/reindexar")
 # def reindexar():
