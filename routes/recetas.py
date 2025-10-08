@@ -4,8 +4,25 @@ from firebase_admin import firestore, credentials, auth
 import os
 import json
 from pydantic import BaseModel
+from typing import List
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+# 🔹 Modelo de salida de receta
+class RecetaOut(BaseModel):
+    titulo: str
+    ingredientes: List[str]
+    descripcion: str
+    pasos: str
+    likes: int
+    popup_clicks: int
+
+# 🔹 Función para convertir string de ingredientes a lista
+def string_a_lista(ingredientes_str: str) -> List[str]:
+    # Puedes usar split por espacio o por coma según cómo tengas los datos
+    return ingredientes_str.split()  # ejemplo: separar por espacios
 
 # 🔥 Inicializar Firebase solo si no está inicializado
 if not firebase_admin._apps:
@@ -92,11 +109,16 @@ def quitar_like(receta_id: str, request: LikeRequest):
 
     return {"message": f"💔 Like quitado de la receta {receta_id}"}
 
-@router.get("/receta/{receta_id}")
+@router.get("/receta/{receta_id}", response_model=RecetaOut)
 def obtener_receta(receta_id: str):
     receta_ref = db.collection("recetas").document(receta_id)
     receta_doc = receta_ref.get()
     if not receta_doc.exists:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
+    
     receta_data = receta_doc.to_dict()
+
+    # Transformar ingredientes
+    receta_data["ingredientes"] = string_a_lista(receta_data.get("ingredientes", ""))
+
     return receta_data
