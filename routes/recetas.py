@@ -23,29 +23,19 @@ db = firestore.client()
 # -------------------------------------------------------------
 # 🔹 ENDPOINT: incrementar visualización
 # -------------------------------------------------------------
+class ViewRequest(BaseModel):
+    uid: str
+
 @router.post("/receta/{receta_id}/view")
-def incrementar_view(receta_id: str, uid: str = Body(...)):
-    """
-    Incrementa el contador de visualizaciones globales y guarda el historial del usuario.
-    """
+def incrementar_view(receta_id: str, request: ViewRequest):
+    uid = request.uid
     receta_ref = db.collection("recetas").document(receta_id)
     user_ref = db.collection("usuarios").document(uid)
 
-    # Incrementar contador global
-    receta_ref.update({
-        "views": firestore.Increment(1)
-    })
-    receta_ref.update({
-        "popup_clicks": firestore.Increment(1)
-    })
-
-    # Guardar en el historial del usuario
-    user_ref.set({
-        "vistas": firestore.ArrayUnion([receta_id])
-    }, merge=True)
+    receta_ref.update({"views": firestore.Increment(1), "popup_clicks": firestore.Increment(1)})
+    user_ref.set({"vistas": firestore.ArrayUnion([receta_id])}, merge=True)
 
     return {"message": f"✅ Se incrementó la vista de la receta {receta_id}"}
-
 
 # -------------------------------------------------------------
 # 🔹 ENDPOINT: dar like
@@ -54,8 +44,8 @@ class LikeRequest(BaseModel):
     uid: str
 
 @router.post("/receta/{receta_id}/like")
-def dar_like(receta_id: str, body: LikeRequest):
-    uid = body.uid
+def dar_like(receta_id: str, request: LikeRequest):
+    uid = request.uid
     receta_ref = db.collection("recetas").document(receta_id)
     user_ref = db.collection("usuarios").document(uid)
 
@@ -75,7 +65,6 @@ def dar_like(receta_id: str, body: LikeRequest):
     }, merge=True)
 
     return {"message": f"❤️ Like agregado a la receta {receta_id}"}
-
 
 # -------------------------------------------------------------
 # 🔹 ENDPOINT: quitar like
