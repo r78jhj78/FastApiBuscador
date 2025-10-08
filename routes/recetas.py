@@ -3,6 +3,7 @@ import firebase_admin
 from firebase_admin import firestore, credentials, auth
 import os
 import json
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -49,11 +50,12 @@ def incrementar_view(receta_id: str, uid: str = Body(...)):
 # -------------------------------------------------------------
 # 🔹 ENDPOINT: dar like
 # -------------------------------------------------------------
+class LikeRequest(BaseModel):
+    uid: str
+
 @router.post("/receta/{receta_id}/like")
-def dar_like(receta_id: str, uid: str = Body(...)):
-    """
-    Permite dar like a una receta. Solo 1 like por usuario.
-    """
+def dar_like(receta_id: str, body: LikeRequest):
+    uid = body.uid
     receta_ref = db.collection("recetas").document(receta_id)
     user_ref = db.collection("usuarios").document(uid)
 
@@ -63,13 +65,11 @@ def dar_like(receta_id: str, uid: str = Body(...)):
     if receta_id in likes_actuales:
         return {"message": "❌ Ya diste like a esta receta"}
 
-    # Incrementar contador global
     receta_ref.update({
         "likes": firestore.Increment(1),
         f"liked_by.{uid}": True
     })
 
-    # Guardar que el usuario la ha likeado
     user_ref.set({
         "likes": firestore.ArrayUnion([receta_id])
     }, merge=True)
