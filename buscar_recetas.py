@@ -56,27 +56,49 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
     query_expandida = expandir_con_sinonimos(query)
 
     body = {
-        "query": query_expandida,
-        "rescore": {
-            "window_size": 50,
-            "query": {
-                "rescore_query": {
-                    "multi_match": {
-                        "query": query,
-                        "fields": ["titulo^3", "ingredientes_texto^2", "descripcion", "pasos", "contenido_total"],
-                        "type": "phrase",
-                        "slop": 3
+    "query": {
+        "function_score": {
+            "query": query_expandida,
+            "functions": [
+                {
+                    "field_value_factor": {
+                        "field": "likes",
+                        "factor": 1,
+                        "modifier": "log1p",
+                        "missing": 0
                     }
                 },
-                "query_weight": 0.7,
-                "rescore_query_weight": 1.8
-            }
-        },#prioriar los likes
-        "sort":[
-            {"likes": {"order":"desc"}},
-            {"popup_clicks":{"order":"desc"}}
-        ]
-    }
+                {
+                    "field_value_factor": {
+                        "field": "popup_clicks",
+                        "factor": 0.5,  # menos peso que likes
+                        "modifier": "log1p",
+                        "missing": 0
+                    }
+                }
+            ],
+            "score_mode": "sum",
+            "boost_mode": "sum"
+        }
+    },
+    "rescore": {  # opcional, mantiene coincidencias exactas
+        "window_size": 50,
+        "query": {
+            "rescore_query": {
+                "multi_match": {
+                    "query": query,
+                    "fields": ["titulo^3", "ingredientes_texto^2", "descripcion", "pasos", "contenido_total"],
+                    "type": "phrase",
+                    "slop": 3
+                }
+            },
+            "query_weight": 0.7,
+            "rescore_query_weight": 1.8
+        }
+    },
+    "size": 10
+}
+
 
     response = client.search(index=index, body=body, size=size)
     hits = response.get("hits", {}).get("hits", [])
