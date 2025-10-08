@@ -70,10 +70,8 @@ def dar_like(receta_id: str, request: LikeRequest):
 # 🔹 ENDPOINT: quitar like
 # -------------------------------------------------------------
 @router.post("/receta/{receta_id}/unlike")
-def quitar_like(receta_id: str, uid: str = Body(...)):
-    """
-    Permite quitar el like de una receta si ya lo tenía.
-    """
+def quitar_like(receta_id: str, request: LikeRequest):
+    uid = request.uid
     receta_ref = db.collection("recetas").document(receta_id)
     user_ref = db.collection("usuarios").document(uid)
 
@@ -83,13 +81,11 @@ def quitar_like(receta_id: str, uid: str = Body(...)):
     if receta_id not in likes_actuales:
         return {"message": "⚠️ No habías dado like a esta receta"}
 
-    # Reducir contador global en 1
     receta_ref.update({
         "likes": firestore.Increment(-1),
         f"liked_by.{uid}": firestore.DELETE_FIELD
     })
 
-    # Quitar de la lista del usuario
     user_ref.update({
         "likes": firestore.ArrayRemove([receta_id])
     })
