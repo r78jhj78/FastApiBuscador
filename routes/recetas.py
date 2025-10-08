@@ -6,6 +6,7 @@ import json
 from pydantic import BaseModel
 from typing import List
 from pydantic import BaseModel
+from opensearch_client import client
 
 router = APIRouter()
 
@@ -66,31 +67,50 @@ def dar_like(receta_id: str, request: LikeRequest):
     receta_ref = db.collection("recetas").document(receta_id)
     user_ref = db.collection("usuarios").document(uid)
 
+    receta_doc = receta_ref.get()
+    if not receta_doc.exists:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
+
     user_doc = user_ref.get().to_dict() or {}
     likes_actuales = user_doc.get("likes", [])
 
+    # Si ya dio like, devolvemos mensaje
     if receta_id in likes_actuales:
         return {"message": "❌ Ya diste like a esta receta"}
 
+    # 🔹 Actualizamos Firestore
     receta_ref.update({
         "likes": firestore.Increment(1),
         f"liked_by.{uid}": True
     })
-
     user_ref.set({
         "likes": firestore.ArrayUnion([receta_id])
     }, merge=True)
 
+    # 🔹 Sincronizamos con OpenSearch
+    try:
+        receta_data = receta_ref.get().to_dict()
+        nuevo_like_count = receta_data.get("likes", 0)
+        client.update(
+            index="recetas",
+            id=receta_id,
+            body={"doc": {"likes": nuevo_like_count}}
+        )
+    except Exception as e:
+        print(f"⚠️ Error actualizando likes en OpenSearch: {e}")
+
     return {"message": f"❤️ Like agregado a la receta {receta_id}"}
 
-# -------------------------------------------------------------
-# 🔹 ENDPOINT: quitar like
-# -------------------------------------------------------------
+
 @router.post("/receta/{receta_id}/unlike")
 def quitar_like(receta_id: str, request: LikeRequest):
     uid = request.uid
     receta_ref = db.collection("recetas").document(receta_id)
     user_ref = db.collection("usuarios").document(uid)
+
+    receta_doc = receta_ref.get()
+    if not receta_doc.exists:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
 
     user_doc = user_ref.get().to_dict() or {}
     likes_actuales = user_doc.get("likes", [])
@@ -102,10 +122,21 @@ def quitar_like(receta_id: str, request: LikeRequest):
         "likes": firestore.Increment(-1),
         f"liked_by.{uid}": firestore.DELETE_FIELD
     })
-
     user_ref.update({
         "likes": firestore.ArrayRemove([receta_id])
     })
+
+    # 🔹 Sincronizamos con OpenSearch
+    try:
+        receta_data = receta_ref.get().to_dict()
+        nuevo_like_count = receta_data.get("likes", 0)
+        client.update(
+            index="recetas",
+            id=receta_id,
+            body={"doc": {"likes": nuevo_like_count}}
+        )
+    except Exception as e:
+        print(f"⚠️ Error actualizando likes en OpenSearch: {e}")
 
     return {"message": f"💔 Like quitado de la receta {receta_id}"}
 
