@@ -116,8 +116,6 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
             "popup_clicks": source.get("popup_clicks", 0)
         })
 
-
-
     if return_hits:
         return recetas
 

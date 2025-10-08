@@ -74,20 +74,16 @@ def dar_like(receta_id: str, request: LikeRequest):
     user_doc = user_ref.get().to_dict() or {}
     likes_actuales = user_doc.get("likes", [])
 
-    # Si ya dio like, devolvemos mensaje
     if receta_id in likes_actuales:
         return {"message": "❌ Ya diste like a esta receta"}
 
-    # 🔹 Actualizamos Firestore
     receta_ref.update({
         "likes": firestore.Increment(1),
         f"liked_by.{uid}": True
     })
-    user_ref.set({
-        "likes": firestore.ArrayUnion([receta_id])
-    }, merge=True)
+    user_ref.set({"likes": firestore.ArrayUnion([receta_id])}, merge=True)
 
-    # 🔹 Sincronizamos con OpenSearch
+    # 🔹 Sincronizar con OpenSearch usando ID real de Firestore
     try:
         receta_data = receta_ref.get().to_dict()
         nuevo_like_count = receta_data.get("likes", 0)
@@ -100,7 +96,6 @@ def dar_like(receta_id: str, request: LikeRequest):
         print(f"⚠️ Error actualizando likes en OpenSearch: {e}")
 
     return {"message": f"❤️ Like agregado a la receta {receta_id}"}
-
 
 @router.post("/receta/{receta_id}/unlike")
 def quitar_like(receta_id: str, request: LikeRequest):
@@ -122,11 +117,8 @@ def quitar_like(receta_id: str, request: LikeRequest):
         "likes": firestore.Increment(-1),
         f"liked_by.{uid}": firestore.DELETE_FIELD
     })
-    user_ref.update({
-        "likes": firestore.ArrayRemove([receta_id])
-    })
+    user_ref.update({"likes": firestore.ArrayRemove([receta_id])})
 
-    # 🔹 Sincronizamos con OpenSearch
     try:
         receta_data = receta_ref.get().to_dict()
         nuevo_like_count = receta_data.get("likes", 0)
@@ -146,10 +138,9 @@ def obtener_receta(receta_id: str):
     receta_doc = receta_ref.get()
     if not receta_doc.exists:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
-    
-    receta_data = receta_doc.to_dict()
 
-    # Transformar ingredientes
+    receta_data = receta_doc.to_dict()
     receta_data["ingredientes"] = string_a_lista(receta_data.get("ingredientes", ""))
+    receta_data["id"] = receta_id  # ✅ agrega ID real de Firestore
 
     return receta_data

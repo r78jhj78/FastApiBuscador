@@ -7,42 +7,41 @@ import os
 import requests
 import json
 from diccionario_sinonimos import obtener_sinonimos
+from opensearch_client import client
+from firebase_admin import credentials, initialize_app
 
 # ---------------------
 # Configuración Firebase
 # ---------------------
 
 firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
+if not firebase_cred_json:
+    raise Exception("No se encontró variable de entorno FIREBASE_CREDENTIALS")
 
-if firebase_cred_json:
-    cred_dict = json.loads(firebase_cred_json)
-    cred = credentials.Certificate(cred_dict)
-else:
-    # Ruta local para desarrollo
-    FIREBASE_CREDENTIALS_PATH = r"C:\Users\HP\Pictures\serviceAccountKey.json"
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+cred_dict = json.loads(firebase_cred_json)
+
+# 🔹 ESTA LÍNEA ES NECESARIA EN TU CASO
+cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
+
+cred = credentials.Certificate(cred_dict)
+firebase_admin.initialize_app(cred)
 
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
+
 # ---------------------
 # Configuración OpenSearch
 # ---------------------
 
 # Cambia estos valores a la configuración de tu instancia OpenSearch
-OPENSEARCH_HOST = "localhost"
-OPENSEARCH_PORT = 9200
-OPENSEARCH_USER = "admin"
-OPENSEARCH_PASS = "admin"
+host = os.getenv('OPENSEARCH_HOST', 'localhost')
+port = int(os.getenv('OPENSEARCH_PORT', 443))
+user = os.getenv('OPENSEARCH_USER', 'admin')  # Cambio aquí para que coincida con tu env
+password = os.getenv('OPENSEARCH_PASS', 'admin')  # Cambio aquí
 
-client = OpenSearch(
-    hosts=[{"host": OPENSEARCH_HOST, "port": OPENSEARCH_PORT}],
-    http_auth=(OPENSEARCH_USER, OPENSEARCH_PASS),
-    use_ssl=False,
-    verify_certs=False,
-)
 
 # ---------------------
 # Funciones auxiliares
@@ -142,17 +141,15 @@ def crear_indice_con_sinonimos():
                 },
                 "calorias": {
                     "type": "integer"
-                }
+                },
+                "likes": { "type": "integer" },
+                "popup_clicks": { "type": "integer" }
             }
         }
     }
 
     client.indices.create(index=index_name, body=index_body)
     print(f"✅ Índice '{index_name}' creado con sinónimos dinámicos.")
-
-
-if __name__ == "__main__":
-    crear_indice_con_sinonimos()
 
 
 
@@ -197,7 +194,9 @@ def crear_indice():
                 },
                 "calorias": {
                     "type": "integer"
-                }
+                },
+                "likes": { "type": "integer" },
+                "popup_clicks": { "type": "integer" }
             }
         }
     }
@@ -205,24 +204,19 @@ def crear_indice():
     client.indices.create(index=index_name, body=index_body)
     print(f"✅ Índice '{index_name}' creado en OpenSearch.")
 
-    client.indices.create(index=index_name, body=index_body)
-    print(f"✅ Índice '{index_name}' creado con sinónimos dinámicos.")
-
-    if __name__ == "__main__":
-        crear_indice_con_sinonimos()
 # ---------------------
 # Función principal para exportar e indexar
 # ---------------------
 
 def exportar_e_indexar_recetas():
-    crear_indice()
 
     recetas_ref = db.collection("recetas")
     docs = recetas_ref.stream()
 
     count = 0
-    for idx, doc in enumerate(docs):
+    for doc in docs:
         data = doc.to_dict()
+        doc_id = doc.id  # ✅ Usar ID real de Firestore
 
         ingredientes = [normalize_text(i.get("nombre", "")) for i in data.get("ingredientes", [])]
         pasos = [normalize_text(p.get("descripcion", "")) for p in data.get("pasos", [])]
@@ -232,20 +226,20 @@ def exportar_e_indexar_recetas():
         doc_opensearch = {
             "titulo": titulo,
             "ingredientes_texto": " ".join(ingredientes),
-            "ingredientes": data.get("ingredientes", []),  # ✅ Agrega el array completo
             "descripcion": desc,
-            "pasos": data.get("pasos", []),                # ✅ Devuelve los pasos completos también
+            "pasos": " ".join(pasos),
             "contenido_total": f"{titulo} {desc} {' '.join(ingredientes)} {' '.join(pasos)}",
             "calorias": data.get("calorias", 0),
+            "likes": data.get("likes", 0),
+            "popup_clicks": data.get("popup_clicks", 0)
         }
 
-
-        # Indexar documento en OpenSearch
-        client.index(index="recetas", id=idx, body=doc_opensearch)
+        client.index(index="recetas", id=doc_id, body=doc_opensearch)
         count += 1
 
     print(f"✅ Exportadas e indexadas {count} recetas en OpenSearch.")
 
 
 if __name__ == "__main__":
-     exportar_e_indexar_recetas()
+    crear_indice_con_sinonimos()
+    exportar_e_indexar_recetas()

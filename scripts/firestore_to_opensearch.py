@@ -214,8 +214,9 @@ def exportar_e_indexar_recetas():
     docs = recetas_ref.stream()
 
     count = 0
-    for idx, doc in enumerate(docs):
+    for doc in docs:
         data = doc.to_dict()
+        doc_id = doc.id  # ✅ Usar ID real de Firestore
 
         ingredientes = [normalize_text(i.get("nombre", "")) for i in data.get("ingredientes", [])]
         pasos = [normalize_text(p.get("descripcion", "")) for p in data.get("pasos", [])]
@@ -230,11 +231,10 @@ def exportar_e_indexar_recetas():
             "contenido_total": f"{titulo} {desc} {' '.join(ingredientes)} {' '.join(pasos)}",
             "calorias": data.get("calorias", 0),
             "likes": data.get("likes", 0),
-            "popup_clicks": data.get("popup_clicks", 0),
+            "popup_clicks": data.get("popup_clicks", 0)
         }
 
-        # Indexar documento en OpenSearch
-        client.index(index="recetas", id=idx, body=doc_opensearch)
+        client.index(index="recetas", id=doc_id, body=doc_opensearch)
         count += 1
 
     print(f"✅ Exportadas e indexadas {count} recetas en OpenSearch.")
