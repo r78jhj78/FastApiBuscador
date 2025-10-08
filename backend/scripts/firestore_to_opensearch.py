@@ -232,11 +232,13 @@ def exportar_e_indexar_recetas():
         doc_opensearch = {
             "titulo": titulo,
             "ingredientes_texto": " ".join(ingredientes),
+            "ingredientes": data.get("ingredientes", []),  # ✅ Agrega el array completo
             "descripcion": desc,
-            "pasos": " ".join(pasos),
+            "pasos": data.get("pasos", []),                # ✅ Devuelve los pasos completos también
             "contenido_total": f"{titulo} {desc} {' '.join(ingredientes)} {' '.join(pasos)}",
             "calorias": data.get("calorias", 0),
         }
+
 
         # Indexar documento en OpenSearch
         client.index(index="recetas", id=idx, body=doc_opensearch)

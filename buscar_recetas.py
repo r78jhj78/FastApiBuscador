@@ -108,12 +108,13 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
         source = hit["_source"]
         recetas.append({
             "titulo": source.get("titulo", ""),
-            "ingredientes": source.get("ingredientes_texto", ""),
+            "ingredientes": source.get("ingredientes", []),  # ✅ Recupera la lista original
             "descripcion": source.get("descripcion", ""),
             "pasos": source.get("pasos", ""),
             "likes": source.get("likes", 0),
             "popup_clicks": source.get("popup_clicks", 0)
         })
+
 
     if return_hits:
         return recetas
