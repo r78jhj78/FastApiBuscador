@@ -14,15 +14,17 @@ from firebase_admin import credentials, initialize_app
 # Configuración Firebase
 # ---------------------
 
-firebase_cred_json = os.getenv("FIREBASE_SERVICE_ACCOUNT")  # ✅ usa la nueva variable de Railway
+firebase_cred_json = os.getenv("FIREBASE_CREDENTIALS")
 if not firebase_cred_json:
-    raise Exception("No se encontró variable de entorno FIREBASE_SERVICE_ACCOUNT")
+    raise Exception("No se encontró variable de entorno FIREBASE_CREDENTIALS")
 
 cred_dict = json.loads(firebase_cred_json)
-# Por si acaso, asegúrate de normalizar los saltos de línea
+
+# 🔹 ESTA LÍNEA ES NECESARIA EN TU CASO
 cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
 
 cred = credentials.Certificate(cred_dict)
+firebase_admin.initialize_app(cred)
 
 if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
