@@ -91,3 +91,12 @@ def quitar_like(receta_id: str, request: LikeRequest):
     })
 
     return {"message": f"💔 Like quitado de la receta {receta_id}"}
+
+@router.get("/receta/{receta_id}")
+def obtener_receta(receta_id: str):
+    receta_ref = db.collection("recetas").document(receta_id)
+    receta_doc = receta_ref.get()
+    if not receta_doc.exists:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
+    receta_data = receta_doc.to_dict()
+    return receta_data
