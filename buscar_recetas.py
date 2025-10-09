@@ -106,15 +106,29 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
     recetas = []
     for hit in hits:
         source = hit["_source"]
+
+        pasos_raw = source.get("pasos", "")
+        pasos_lista = []
+
+        if isinstance(pasos_raw, str):
+            lineas = [linea.strip() for linea in pasos_raw.split('.') if linea.strip()]
+            pasos_lista = [
+                {"descripcion": linea, "imagen_url": "", "orden": idx + 1}
+                for idx, linea in enumerate(lineas)
+            ]
+        elif isinstance(pasos_raw, list):
+            pasos_lista = pasos_raw
+
         recetas.append({
-            "id": hit["_id"],  # ✅ Agregar el ID del documento
+            "id": hit["_id"],
             "titulo": source.get("titulo", ""),
             "ingredientes": source.get("ingredientes", []),
             "descripcion": source.get("descripcion", ""),
-            "pasos": source.get("pasos", ""),
+            "pasos": pasos_lista,
             "likes": source.get("likes", 0),
             "popup_clicks": source.get("popup_clicks", 0)
         })
+
 
     if return_hits:
         return recetas
