@@ -132,6 +132,35 @@ def quitar_like(receta_id: str, request: LikeRequest):
 
     return {"message": f"💔 Like quitado de la receta {receta_id}"}
 
+from pydantic import BaseModel
+from typing import List, Optional, Dict
+
+class Ingrediente(BaseModel):
+    nombre: str
+    cantidad: Optional[str] = None
+    unidad: Optional[str] = None
+
+class Paso(BaseModel):
+    orden: int
+    descripcion: str
+    imagen_url: Optional[str] = None
+
+class RecetaOut(BaseModel):
+    id: str
+    titulo: str
+    descripcion: str
+    calorias: int
+    tiempoPreparacion: Optional[str] = None
+    porciones: Optional[str] = None
+    ingrediente_principal: Optional[str] = None
+    imagen_final_url: Optional[str] = None
+    liked_by: Optional[Dict[str, bool]] = {}
+    ingredientes: List[Ingrediente]
+    pasos: List[Paso]
+    likes: int
+    popup_clicks: int
+
+
 @router.get("/receta/{receta_id}", response_model=RecetaOut)
 def obtener_receta(receta_id: str):
     receta_ref = db.collection("recetas").document(receta_id)
@@ -139,8 +168,24 @@ def obtener_receta(receta_id: str):
     if not receta_doc.exists:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
 
-    receta_data = receta_doc.to_dict()
-    receta_data["ingredientes"] = string_a_lista(receta_data.get("ingredientes", ""))
-    receta_data["id"] = receta_id  # ✅ agrega ID real de Firestore
+    data = receta_doc.to_dict()
 
-    return receta_data
+    # Convertir ingredientes y pasos a objetos
+    ingredientes = [Ingrediente(**i) for i in data.get("ingredientes", [])]
+    pasos = [Paso(**p) for p in data.get("pasos", [])]
+
+    return RecetaOut(
+        id=receta_id,
+        titulo=data.get("titulo", ""),
+        descripcion=data.get("descripcion", ""),
+        calorias=data.get("calorias", 0),
+        tiempoPreparacion=data.get("tiempoPreparacion"),
+        porciones=data.get("porciones"),
+        ingrediente_principal=data.get("ingrediente_principal"),
+        imagen_final_url=data.get("imagen_final_url"),
+        liked_by=data.get("liked_by", {}),
+        ingredientes=ingredientes,
+        pasos=pasos,
+        likes=data.get("likes", 0),
+        popup_clicks=data.get("popup_clicks", 0)
+    )

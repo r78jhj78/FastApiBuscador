@@ -221,7 +221,7 @@ def exportar_e_indexar_recetas():
         ingredientes = [normalize_text(i.get("nombre", "")) for i in data.get("ingredientes", [])]
         pasos = [normalize_text(p.get("descripcion", "")) for p in data.get("pasos", [])]
         titulo = normalize_text(data.get("titulo", ""))
-        desc = pasos[0] if pasos else ""
+        desc = normalize_text(data.get("descripcion", ""))
 
         doc_opensearch = {
             "titulo": titulo,
