@@ -168,11 +168,17 @@ def obtener_receta(receta_id: str):
     if not receta_doc.exists:
         raise HTTPException(status_code=404, detail="Receta no encontrada")
 
-    data = receta_doc.to_dict()
+    data = receta_doc.to_dict() or {}
 
-    # Convertir ingredientes y pasos a objetos
-    ingredientes = [Ingrediente(**i) for i in data.get("ingredientes", [])]
-    pasos = [Paso(**p) for p in data.get("pasos", [])]
+    ingredientes_data = data.get("ingredientes") or []
+    pasos_data = data.get("pasos") or []
+
+    try:
+        ingredientes = [Ingrediente(**i) for i in ingredientes_data]
+        pasos = [Paso(**p) for p in pasos_data]
+    except Exception as e:
+        print(f"⚠️ Error parseando ingredientes/pasos: {e}")
+        raise HTTPException(status_code=500, detail="Error al parsear receta")
 
     return RecetaOut(
         id=receta_id,
@@ -181,9 +187,9 @@ def obtener_receta(receta_id: str):
         calorias=data.get("calorias", 0),
         tiempoPreparacion=data.get("tiempoPreparacion"),
         porciones=data.get("porciones"),
-        ingrediente_principal=data.get("ingrediente_principal"),
+        ingrediente_principal=data.get("ingrediente_principal", ""),
         imagen_final_url=data.get("imagen_final_url"),
-        liked_by=data.get("liked_by", {}),
+        liked_by=data.get("liked_by") or {},
         ingredientes=ingredientes,
         pasos=pasos,
         likes=data.get("likes", 0),
