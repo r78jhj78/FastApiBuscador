@@ -6,7 +6,6 @@ import json
 from pydantic import BaseModel
 from typing import List
 from pydantic import BaseModel
-from backend import app
 from opensearch_client import client
 
 router = APIRouter()
@@ -134,7 +133,7 @@ def quitar_like(receta_id: str, request: LikeRequest):
     return {"message": f"💔 Like quitado de la receta {receta_id}"}
 
 
-@app.get("/recetas/{receta_id}")
+@router.get("/recetas/{receta_id}")
 def get_receta_por_id(receta_id: str):
     doc = db.collection("recetas").document(receta_id).get()
     if doc.exists:
