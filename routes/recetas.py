@@ -139,3 +139,12 @@ def get_receta_por_id(receta_id: str):
     if doc.exists:
         return doc.to_dict()
     return {"error": "Receta no encontrada"}
+
+from fastapi import Query
+from buscar_recetas import buscar_recetas  # Importá tu función de búsqueda
+
+@router.get("/buscar_ids")
+def buscar_ids(query: str = Query(..., min_length=1)):
+    recetas = buscar_recetas(query, return_hits=True)
+    ids = [receta["id"] for receta in recetas]
+    return {"ids": ids}
