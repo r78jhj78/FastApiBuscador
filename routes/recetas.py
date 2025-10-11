@@ -8,6 +8,12 @@ from typing import List
 from pydantic import BaseModel
 from backend import app
 from opensearch_client import client
+from fastapi import FastAPI
+from routes.recetas import router as recetas_router
+
+app = FastAPI()
+
+app.include_router(recetas_router)
 
 router = APIRouter()
 
