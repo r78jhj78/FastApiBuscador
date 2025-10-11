@@ -6,6 +6,7 @@ import json
 from pydantic import BaseModel
 from typing import List
 from pydantic import BaseModel
+from backend import app
 from opensearch_client import client
 
 router = APIRouter()
@@ -132,66 +133,10 @@ def quitar_like(receta_id: str, request: LikeRequest):
 
     return {"message": f"💔 Like quitado de la receta {receta_id}"}
 
-from pydantic import BaseModel
-from typing import List, Optional, Dict
 
-class Ingrediente(BaseModel):
-    nombre: str
-    cantidad: Optional[str] = None
-    unidad: Optional[str] = None
-
-class Paso(BaseModel):
-    orden: int
-    descripcion: str
-    imagen_url: Optional[str] = None
-
-class RecetaOut(BaseModel):
-    id: str
-    titulo: str
-    descripcion: str
-    calorias: int
-    tiempoPreparacion: Optional[str] = None
-    porciones: Optional[str] = None
-    ingrediente_principal: Optional[str] = None
-    imagen_final_url: Optional[str] = None
-    liked_by: Optional[Dict[str, bool]] = {}
-    ingredientes: List[Ingrediente]
-    pasos: List[Paso]
-    likes: int
-    popup_clicks: int
-
-
-@router.get("/receta/{receta_id}", response_model=RecetaOut)
-def obtener_receta(receta_id: str):
-    receta_ref = db.collection("recetas").document(receta_id)
-    receta_doc = receta_ref.get()
-    if not receta_doc.exists:
-        raise HTTPException(status_code=404, detail="Receta no encontrada")
-
-    data = receta_doc.to_dict() or {}
-
-    ingredientes_data = data.get("ingredientes") or []
-    pasos_data = data.get("pasos") or []
-
-    try:
-        ingredientes = [Ingrediente(**i) for i in ingredientes_data]
-        pasos = [Paso(**p) for p in pasos_data]
-    except Exception as e:
-        print(f"⚠️ Error parseando ingredientes/pasos: {e}")
-        raise HTTPException(status_code=500, detail="Error al parsear receta")
-
-    return RecetaOut(
-        id=receta_id,
-        titulo=data.get("titulo", ""),
-        descripcion=data.get("descripcion", ""),
-        calorias=data.get("calorias", 0),
-        tiempoPreparacion=data.get("tiempoPreparacion"),
-        porciones=data.get("porciones"),
-        ingrediente_principal=data.get("ingrediente_principal", ""),
-        imagen_final_url=data.get("imagen_final_url"),
-        liked_by=data.get("liked_by") or {},
-        ingredientes=ingredientes,
-        pasos=pasos,
-        likes=data.get("likes", 0),
-        popup_clicks=data.get("popup_clicks", 0)
-    )
+@app.get("/recetas/{receta_id}")
+def get_receta_por_id(receta_id: str):
+    doc = db.collection("recetas").document(receta_id).get()
+    if doc.exists:
+        return doc.to_dict()
+    return {"error": "Receta no encontrada"}
