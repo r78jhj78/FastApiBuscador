@@ -142,9 +142,14 @@ def get_receta_por_id(receta_id: str):
 
 from fastapi import Query
 from buscar_recetas import buscar_recetas  # Importá tu función de búsqueda
+from buscar_recetas import limpiar_stopwords, buscar_recetas
 
 @router.get("/buscar_ids")
 def buscar_ids(query: str = Query(..., min_length=1)):
-    recetas = buscar_recetas(query, return_hits=True)
+    query_limpia = limpiar_stopwords(query)
+    recetas = buscar_recetas(query_limpia, return_hits=True)
     ids = [receta["id"] for receta in recetas]
     return {"ids": ids}
+
+
+
