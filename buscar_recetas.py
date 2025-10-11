@@ -122,12 +122,19 @@ def buscar_recetas(query, index="recetas", size=5, return_hits=False):
         recetas.append({
             "id": hit["_id"],
             "titulo": source.get("titulo", ""),
-            "ingredientes": source.get("ingredientes", []),
             "descripcion": source.get("descripcion", ""),
+            "imagen_final_url": source.get("imagen_final_url", ""),
+            "calorias": source.get("calorias", 0),
+            "tiempoPreparacion": source.get("tiempoPreparacion", ""),
+            "porciones": source.get("porciones", 1),
+            "ingrediente_principal": source.get("ingrediente_principal", ""),
+            "ingredientes": source.get("ingredientes", []),
             "pasos": pasos_lista,
             "likes": source.get("likes", 0),
-            "popup_clicks": source.get("popup_clicks", 0)
+            "popup_clicks": source.get("popup_clicks", 0),
+            "liked_by": source.get("liked_by", [])  # si lo estás usando en tu lógica de likes
         })
+
 
 
     if return_hits:
