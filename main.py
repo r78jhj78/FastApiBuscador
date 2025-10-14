@@ -96,16 +96,17 @@ def reindexar():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+from fastapi import APIRouter
 from scripts.firestore_to_opensearch import obtener_receta_por_id, indexar_una_receta
 
-@app.post("/admin/reindexar_receta/{receta_id}")
+router = APIRouter()
+
+@router.post("/admin/reindexar_receta/{receta_id}")
 def reindexar_receta_individual(receta_id: str):
-    try:
-        receta = obtener_receta_por_id(receta_id)
-        if receta:
-            indexar_una_receta(receta)  # esta función hace put/update a OpenSearch
-            return {"status": f"Receta {receta_id} reindexada correctamente"}
-        else:
-            raise HTTPException(status_code=404, detail="Receta no encontrada en Firestore")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    receta = obtener_receta_por_id(receta_id)
+    if not receta:
+        raise HTTPException(status_code=404, detail="Receta no encontrada")
+
+    indexar_una_receta(receta)
+    return {"message": f"Receta {receta_id} reindexada con éxito"}
+
