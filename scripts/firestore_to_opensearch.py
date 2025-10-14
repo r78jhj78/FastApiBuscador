@@ -239,6 +239,33 @@ def exportar_e_indexar_recetas():
 
     print(f"✅ Exportadas e indexadas {count} recetas en OpenSearch.")
 
+def obtener_receta_por_id(receta_id: str) -> dict | None:
+    doc_ref = db.collection("recetas").document(receta_id)
+    doc = doc_ref.get()
+    if doc.exists:
+        data = doc.to_dict()
+        
+        ingredientes = [normalize_text(i.get("nombre", "")) for i in data.get("ingredientes", [])]
+        pasos = [normalize_text(p.get("descripcion", "")) for p in data.get("pasos", [])]
+        titulo = normalize_text(data.get("titulo", ""))
+        desc = normalize_text(data.get("descripcion", ""))
+
+        return {
+            "id": receta_id,
+            "titulo": titulo,
+            "ingredientes_texto": " ".join(ingredientes),
+            "descripcion": desc,
+            "pasos": " ".join(pasos),
+            "contenido_total": f"{titulo} {desc} {' '.join(ingredientes)} {' '.join(pasos)}",
+            "calorias": data.get("calorias", 0),
+            "likes": data.get("likes", 0),
+            "popup_clicks": data.get("popup_clicks", 0)
+        }
+    return None
+
+def indexar_una_receta(receta: dict):
+    client.index(index="recetas", id=receta["id"], body=receta)
+
 
 if __name__ == "__main__":
     crear_indice_con_sinonimos()
