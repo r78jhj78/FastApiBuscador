@@ -9,10 +9,11 @@ from scripts.firestore_to_opensearch import crear_indice_con_sinonimos, exportar
 import time
 from opensearchpy import exceptions
 from routes.recetas import router as recetas_router
-
+from food_detector import router as food_router 
 
 app = FastAPI(title="Buscador de Recetas")
 app.include_router(recetas_router)
+app.include_router(food_router)
 
 host = os.getenv('OPENSEARCH_HOST', 'localhost')
 port = int(os.getenv('OPENSEARCH_PORT', 443))
