@@ -151,5 +151,32 @@ def buscar_ids(query: str = Query(..., min_length=1)):
     ids = [receta["id"] for receta in recetas]
     return {"ids": ids}
 
+@router.get("/usuario/{uid}/interacciones")
+def obtener_interacciones(uid: str):
+    user_doc = db.collection("usuarios").document(uid).get()
+    if not user_doc.exists:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user_data = user_doc.to_dict() or {}
+    vistas = user_data.get("vistas", [])
+    likes = user_data.get("likes", [])
+
+    recetas_vistas = []
+    recetas_likes = []
+
+    for receta_id in vistas:
+        doc = db.collection("recetas").document(receta_id).get()
+        if doc.exists:
+            recetas_vistas.append({"id": receta_id, **doc.to_dict()})
+
+    for receta_id in likes:
+        doc = db.collection("recetas").document(receta_id).get()
+        if doc.exists():
+            recetas_likes.append({"id": receta_id, **doc.to_dict()})
+
+    return {
+        "vistas": recetas_vistas,
+        "likes": recetas_likes
+    }
 
 
