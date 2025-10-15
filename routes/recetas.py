@@ -56,26 +56,33 @@ class ViewRequest(BaseModel):
 
 #     return {"message": f"✅ Se incrementó la vista de la receta {receta_id}"}
 @router.post("/receta/{receta_id}/view")
-def incrementar_view(receta_id: str, request: ViewRequest):
-    uid = request.uid
-    receta_ref = recetas_ref.document(receta_id)
-    user_ref = usuarios_ref.document(uid)
-    user_vista_ref = user_ref.collection("vistas").document(receta_id)
+def agregar_vista(receta_id: str, data: dict):
+    try:
+        uid = data.get("uid")
+        db = firestore.client()
 
-    receta_ref.update({"popup_clicks": firestore.Increment(1)})
+        receta_ref = db.collection("recetas").document(receta_id)
+        usuario_ref = db.collection("usuarios").document(uid)
 
-    def transaction_fn(transaction):
-        doc_vista = transaction.get(user_vista_ref)
-        contador_actual = doc_vista.get("contador") if doc_vista.exists else 0
-        nuevo_contador = contador_actual + 1
+        # incrementar popup_clicks
+        receta_ref.update({"popup_clicks": firestore.Increment(1)})
 
-        transaction.set(user_vista_ref, {"contador": nuevo_contador})
+        # crear o actualizar el campo vistas en el usuario
+        usuario_doc = usuario_ref.get()
+        if not usuario_doc.exists:
+            usuario_ref.set({"vistas": {receta_id: 1}}, merge=True)
+        else:
+            vistas = usuario_doc.to_dict().get("vistas", {})
+            vistas[receta_id] = vistas.get(receta_id, 0) + 1
+            usuario_ref.set({"vistas": vistas}, merge=True)
 
-        transaction.update(user_ref, {f"vistas.{receta_id}": nuevo_contador})
+        return {"message": "Vista registrada correctamente"}
 
-    db.run_transaction(transaction_fn)
-
-    return {"message": f"✅ Vista registrada para la receta {receta_id}"}
+    except Exception as e:
+        import traceback
+        print("❌ Error al agregar vista:", e)
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 class LikeRequest(BaseModel):
     uid: str
