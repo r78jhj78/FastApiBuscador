@@ -61,21 +61,20 @@ def incrementar_view(receta_id: str, request: ViewRequest):
     receta_ref = recetas_ref.document(receta_id)
     user_ref = usuarios_ref.document(uid)
 
-    # 1️⃣ Incrementar popup_clicks en la receta
+    # Incrementar popup_clicks en la receta (sigue igual)
     receta_ref.update({"popup_clicks": firestore.Increment(1)})
 
-    # 2️⃣ Registrar vista en subcolección y campo principal
     user_vista_ref = user_ref.collection("vistas").document(receta_id)
+
     def transaction_fn(transaction):
+        # obtener contador actual de la subcolección
         doc = transaction.get(user_vista_ref)
         contador = doc.get("contador") if doc.exists else 0
-        transaction.set(user_vista_ref, {"contador": contador + 1})
+        nuevo_contador = contador + 1
+        transaction.set(user_vista_ref, {"contador": nuevo_contador})
 
-        # Actualizar el campo principal "vistas" del usuario
-        user_doc = transaction.get(user_ref)
-        vistas_actuales = user_doc.get("vistas", {}) if user_doc.exists else {}
-        vistas_actuales[receta_id] = contador + 1
-        transaction.update(user_ref, {"vistas": vistas_actuales})
+        # actualizar solo la clave concreta en el documento principal (safe)
+        transaction.update(user_ref, {f"vistas.{receta_id}": nuevo_contador})
 
     db.run_transaction(transaction_fn)
 
