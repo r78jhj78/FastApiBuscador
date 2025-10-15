@@ -60,20 +60,17 @@ def incrementar_view(receta_id: str, request: ViewRequest):
     uid = request.uid
     receta_ref = recetas_ref.document(receta_id)
     user_ref = usuarios_ref.document(uid)
-
-    # Incrementar popup_clicks en la receta (sigue igual)
-    receta_ref.update({"popup_clicks": firestore.Increment(1)})
-
     user_vista_ref = user_ref.collection("vistas").document(receta_id)
 
+    receta_ref.update({"popup_clicks": firestore.Increment(1)})
+
     def transaction_fn(transaction):
-        # obtener contador actual de la subcolección
-        doc = transaction.get(user_vista_ref)
-        contador = doc.get("contador") if doc.exists else 0
-        nuevo_contador = contador + 1
+        doc_vista = transaction.get(user_vista_ref)
+        contador_actual = doc_vista.get("contador") if doc_vista.exists else 0
+        nuevo_contador = contador_actual + 1
+
         transaction.set(user_vista_ref, {"contador": nuevo_contador})
 
-        # actualizar solo la clave concreta en el documento principal (safe)
         transaction.update(user_ref, {f"vistas.{receta_id}": nuevo_contador})
 
     db.run_transaction(transaction_fn)
@@ -181,32 +178,36 @@ def obtener_interacciones(uid: str):
 
     data = doc.to_dict()
     likes = data.get("likes", [])
-    vistas = data.get("vistas", [])
+    vistas_map = data.get("vistas", {})
 
-    # ✅ Verificamos que sean listas
+    # normalizar formatos
     if not isinstance(likes, list):
         likes = []
-    if not isinstance(vistas, list):
-        vistas = []
+    if not isinstance(vistas_map, dict):
+        vistas_map = {}
 
-    recetas_likeadas = []
+    recetas_likes = []
+    for receta_id in likes:
+        receta_doc = recetas_ref.document(receta_id).get()
+        if receta_doc.exists:
+            receta_data = receta_doc.to_dict()
+            receta_data["id"] = receta_id
+            recetas_likes.append(receta_data)
+
     recetas_vistas = []
-
-    # Evitar crash si una receta ya no existe
-    for id in likes:
-        receta_doc = recetas_ref.document(id).get()
+    for receta_id, contador in vistas_map.items():
+        receta_doc = recetas_ref.document(receta_id).get()
         if receta_doc.exists:
-            recetas_likeadas.append(receta_doc.to_dict())
-
-    for id in vistas:
-        receta_doc = recetas_ref.document(id).get()
-        if receta_doc.exists:
-            recetas_vistas.append(receta_doc.to_dict())
+            receta_data = receta_doc.to_dict()
+            receta_data["id"] = receta_id
+            receta_data["contador_vistas_usuario"] = contador
+            recetas_vistas.append(receta_data)
 
     return {
-        "likes": recetas_likeadas,
+        "likes": recetas_likes,
         "vistas": recetas_vistas
     }
+
 
 
 
