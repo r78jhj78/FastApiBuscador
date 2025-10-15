@@ -36,7 +36,8 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 db = firestore.client()
-
+usuarios_ref = db.collection("usuarios")
+recetas_ref = db.collection("recetas")
 
 # -------------------------------------------------------------
 # 🔹 ENDPOINT: incrementar visualización
@@ -153,30 +154,38 @@ def buscar_ids(query: str = Query(..., min_length=1)):
 
 @router.get("/usuario/{uid}/interacciones")
 def obtener_interacciones(uid: str):
-    user_doc = db.collection("usuarios").document(uid).get()
-    if not user_doc.exists:
+    doc = usuarios_ref.document(uid).get()
+    if not doc.exists:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    user_data = user_doc.to_dict() or {}
-    vistas = user_data.get("vistas", [])
-    likes = user_data.get("likes", [])
+    data = doc.to_dict()
+    likes = data.get("likes", [])
+    vistas = data.get("vistas", [])
 
+    # ✅ Verificamos que sean listas
+    if not isinstance(likes, list):
+        likes = []
+    if not isinstance(vistas, list):
+        vistas = []
+
+    recetas_likeadas = []
     recetas_vistas = []
-    recetas_likes = []
 
-    for receta_id in vistas:
-        doc = db.collection("recetas").document(receta_id).get()
-        if doc.exists:
-            recetas_vistas.append({"id": receta_id, **doc.to_dict()})
+    # Evitar crash si una receta ya no existe
+    for id in likes:
+        receta_doc = recetas_ref.document(id).get()
+        if receta_doc.exists:
+            recetas_likeadas.append(receta_doc.to_dict())
 
-    for receta_id in likes:
-        doc = db.collection("recetas").document(receta_id).get()
-        if doc.exists():
-            recetas_likes.append({"id": receta_id, **doc.to_dict()})
+    for id in vistas:
+        receta_doc = recetas_ref.document(id).get()
+        if receta_doc.exists:
+            recetas_vistas.append(receta_doc.to_dict())
 
     return {
-        "vistas": recetas_vistas,
-        "likes": recetas_likes
+        "likes": recetas_likeadas,
+        "vistas": recetas_vistas
     }
+
 
 
