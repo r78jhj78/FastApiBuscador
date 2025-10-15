@@ -45,20 +45,42 @@ recetas_ref = db.collection("recetas")
 class ViewRequest(BaseModel):
     uid: str
 
+# @router.post("/receta/{receta_id}/view")
+# def incrementar_view(receta_id: str, request: ViewRequest):
+#     uid = request.uid
+#     receta_ref = db.collection("recetas").document(receta_id)
+#     user_ref = db.collection("usuarios").document(uid)
+
+#     receta_ref.update({"views": firestore.Increment(1), "popup_clicks": firestore.Increment(1)})
+#     user_ref.set({"vistas": firestore.ArrayUnion([receta_id])}, merge=True)
+
+#     return {"message": f"✅ Se incrementó la vista de la receta {receta_id}"}
 @router.post("/receta/{receta_id}/view")
 def incrementar_view(receta_id: str, request: ViewRequest):
     uid = request.uid
-    receta_ref = db.collection("recetas").document(receta_id)
-    user_ref = db.collection("usuarios").document(uid)
+    receta_ref = recetas_ref.document(receta_id)
+    user_ref = usuarios_ref.document(uid)
 
-    receta_ref.update({"views": firestore.Increment(1), "popup_clicks": firestore.Increment(1)})
-    user_ref.set({"vistas": firestore.ArrayUnion([receta_id])}, merge=True)
+    # 1️⃣ Incrementar popup_clicks en la receta
+    receta_ref.update({"popup_clicks": firestore.Increment(1)})
 
-    return {"message": f"✅ Se incrementó la vista de la receta {receta_id}"}
+    # 2️⃣ Registrar vista en subcolección y campo principal
+    user_vista_ref = user_ref.collection("vistas").document(receta_id)
+    def transaction_fn(transaction):
+        doc = transaction.get(user_vista_ref)
+        contador = doc.get("contador") if doc.exists else 0
+        transaction.set(user_vista_ref, {"contador": contador + 1})
 
-# -------------------------------------------------------------
-# 🔹 ENDPOINT: dar like
-# -------------------------------------------------------------
+        # Actualizar el campo principal "vistas" del usuario
+        user_doc = transaction.get(user_ref)
+        vistas_actuales = user_doc.get("vistas", {}) if user_doc.exists else {}
+        vistas_actuales[receta_id] = contador + 1
+        transaction.update(user_ref, {"vistas": vistas_actuales})
+
+    db.run_transaction(transaction_fn)
+
+    return {"message": f"✅ Vista registrada para la receta {receta_id}"}
+
 class LikeRequest(BaseModel):
     uid: str
 
