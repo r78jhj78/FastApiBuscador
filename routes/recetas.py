@@ -39,22 +39,9 @@ db = firestore.client()
 usuarios_ref = db.collection("usuarios")
 recetas_ref = db.collection("recetas")
 
-# -------------------------------------------------------------
-# 🔹 ENDPOINT: incrementar visualización
-# -------------------------------------------------------------
 class ViewRequest(BaseModel):
     uid: str
 
-# @router.post("/receta/{receta_id}/view")
-# def incrementar_view(receta_id: str, request: ViewRequest):
-#     uid = request.uid
-#     receta_ref = db.collection("recetas").document(receta_id)
-#     user_ref = db.collection("usuarios").document(uid)
-
-#     receta_ref.update({"views": firestore.Increment(1), "popup_clicks": firestore.Increment(1)})
-#     user_ref.set({"vistas": firestore.ArrayUnion([receta_id])}, merge=True)
-
-#     return {"message": f"✅ Se incrementó la vista de la receta {receta_id}"}
 @router.post("/receta/{receta_id}/view")
 def agregar_vista(receta_id: str, data: dict):
     try:
@@ -163,8 +150,10 @@ def quitar_like(receta_id: str, request: LikeRequest):
 def get_receta_por_id(receta_id: str):
     doc = db.collection("recetas").document(receta_id).get()
     if doc.exists:
-        return doc.to_dict()
-    return {"error": "Receta no encontrada"}
+        data = doc.to_dict()
+        data["id"] = receta_id 
+        return data
+    raise HTTPException(status_code=404, detail="Receta no encontrada")
 
 from fastapi import Query
 from buscar_recetas import buscar_recetas  # Importá tu función de búsqueda
